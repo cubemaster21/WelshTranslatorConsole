@@ -227,6 +227,61 @@ namespace WelshConsole
                 return false;
             }
         }
+        class WelshEnglishPiece
+        {
+            //"to descrive subjects verb parts, prepositional phrases, etc.:
+            //multi part words
+            const int MAXSIZE = 10;
+            int actualLength;
+            WordEntry[] theWords;
+            int[] dictLocs;
+            char[] type;
+            bool[] present;
+            bool filled;
+            bool plural;
+
+
+            public WelshEnglishPiece(int howMany, char[] theTypes)
+            {
+
+            }
+            public void clean()
+            {
+
+            }
+            public void fill(WordEntry w)
+            {
+
+            }/*
+            public WordEntry tell(char c)
+            {
+
+            }
+            public String show(int i)
+            {
+
+            }
+            public bool empty()
+            {
+
+            }
+            public bool isEmpty(char c)
+            {
+                
+            }
+            public bool isFilled(char c)
+            {
+
+            }
+            public bool isPlural()
+            {
+
+            }*/
+            public void makePlural()
+            {
+
+            }
+        }
         class Program
         {
             static void Main(string[] args)

@@ -6,7 +6,8 @@ x64/
 [Bb]in/
 [Oo]bj/
 .vs/
-*.sln
+
+
 *.config
 Properties/
 *.csproj
