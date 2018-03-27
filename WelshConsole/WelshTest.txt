@@ -1,2 +1,62 @@
-﻿This is a test file.
-herpa derp derp derp.
+﻿Y mae'r bachgen
+The boy is
+Y mae'r bechgyn
+The boys are
+Y maent hwy
+They are
+Y mae'r llyfr dan y ffenestr
+The book is under the window
+Y mae'r eira ar y cae
+The snow is on the field
+Yr wyf fi yn ysgrifennu ar y papur
+I am writing on the paper
+Yr wyf i yn darllen
+I am reading
+Yr wyt ti yn eistedd
+Thou art sitting
+Y mae ef yn gweithio
+He is working
+Yr ydym ni yn dysgu darllen
+We are learning to read
+Y mae'r bachgen yn gweithio
+The boy is working
+Y mae'r bechgyn yn chwarae
+The boys are playing
+Y maent hwy yn dysgu
+They are learning
+Yr wyf i yn ysgrifennu ar y papur
+I am writing on the paper
+Y mae ef yn rhedeg drwy'r eira i'r cae
+He is running through the snow to the field
+Yr wyf i yn hoffi eistedd yn yr haul yn yr haf
+I like to sit in the sun in the summer
+Y mae'r cloc ar y bwrdd yn y tŷ
+The clock is on the table in the house
+Y mae hi yn gwisgo het
+She is wearing a hat
+Yr ydych chwi yn mynd trwy'r afon
+You are going through a river
+Y mae'r ci yn gorwedd dan y bwrdd
+The dog is lying under the table
+Y mae'r bachgen yn darllen llyfr yn y tŷ wrth y tân
+The boy is reading a book in the house by the fire
+Y mae bachgen yn chwarae yn y cae
+A boy is playing in the field
+Yr ydym ni yn dysgu darllen Saesneg
+We are learning to read English
+Y mae map ar y mur
+A map is on the wall
+Yr ydych chwi yn dysgu ysgrifennu heddiw
+You are learning to write today
+Yr wyf i yn hoffi ysgrifennu a darllen
+I like to write
+Yr ydych chwi yn sefyll wrth y tân
+You are standing near the fire
+Y mae'r bws yn sefyll ar y ffordd wrth yr eglwys
+The bus is standing on the road near the church
+Y maent hwy yn gweithio yn y cae
+They are working in the field
+Yr ydych chwi yn chwarae ar y llawr wrth y tân
+You are playing on the floor near the fire
+Y mae'r ci yn hoffi gorwedd wrth y tân
+The dog likes to lie near the fire

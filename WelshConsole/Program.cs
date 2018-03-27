@@ -33,7 +33,7 @@ namespace WelshConsole
                 String[] linesFromFile = System.IO.File.ReadAllLines(inFile);
                 for(int i = 0;i < linesFromFile.Length; i++)
                 {
-                    testData[i, i % 2] = linesFromFile[i];
+                    testData[i/ 2, i % 2] = linesFromFile[i];
                 }
                 lines = linesFromFile.Length / 2;
             }
@@ -85,13 +85,15 @@ namespace WelshConsole
                 if (source.isFromKeyboard())
                 {
                     source.getData();
-                } else
+                }
+                else
                 {
                     if (source.more(sourceLine))
                     {
                         source.getData(sourceLine);
                         sourceLine++;
-                    } else
+                    }
+                    else
                     {
                         return false;
                     }
@@ -99,7 +101,7 @@ namespace WelshConsole
                 currentSentence = source.sendSentence();
                 toWords();
                 currentLocation = 0;
-                return false;
+                return true;
             }
             void toWords()
             {
@@ -108,7 +110,17 @@ namespace WelshConsole
             }
             public String TellWord()
             {
-                return inWords[currentLocation]; //current word
+                try
+                {
+                    return inWords[currentLocation]; //current word}
+
+                }
+                catch (Exception e)
+                {
+                    
+                    throw new Exception("Failed To Fetch Word at index: " + currentLocation);
+                }
+                return null;
             }
             public int tellCurrentLocation()
             {
@@ -117,6 +129,14 @@ namespace WelshConsole
             public void increaseCurrentLocation()
             {
                 currentLocation++;
+            }
+            public bool hasNext()
+            {
+                return currentLocation < howMany();
+            }
+            public void setCurrentLocation(int location) // this is used for backtracking
+            {
+                currentLocation = location;
             }
             public int howMany()
             {
@@ -131,6 +151,11 @@ namespace WelshConsole
             public String tellNext()
             {
                 return inWords[currentLocation + 1];
+            }
+            public String tellPrevious()
+            {
+                if (currentLocation == 0) return "";
+                return inWords[currentLocation - 1];
             }
             public void setFirst(String s)
             {
@@ -167,6 +192,13 @@ namespace WelshConsole
             // new WordEntry("blaidd","wolf","NR ");
 
             String[] data;
+
+            //translation tags
+            public bool noEnglishIndefinite = false;
+
+            public String irregularPresentParticiple = null;
+
+
             public WordEntry()
             {
                 data = new String[]{ "*ERROR*", "*ERROR*", ""};
@@ -179,10 +211,37 @@ namespace WelshConsole
             {
                 data = new String[] { other.welsh(), other.english(), other.grammar() };
             }
+            public override String ToString()
+            {
+                return data[0] + " | " + data[1] + " | " + data[2];
+            }
+            public WordEntry addIRPP(String english)//add irregular present participle
+            {
+                irregularPresentParticiple = english;
+                return this;
+
+            }
+            public bool hasIrregularPresentParticiple()
+            {
+                return irregularPresentParticiple != null;
+            }
+            public WordEntry setNoEI(bool val)
+            {
+                noEnglishIndefinite = val;
+                return this;
+
+            }
             public String english()
             {
                 return data[1];
             }
+            
+            public bool isRegular()
+            {
+                return data[2][1] == 'R';
+            }
+
+
             public String welsh()
             {
                 return data[0];
@@ -193,11 +252,11 @@ namespace WelshConsole
             }
             public char POS()
             {
-                return grammar().ElementAt(0);
+                return grammar()[0];
             }
             public char Case() // not applicable in welsh
             {
-                return grammar().ElementAt(2);
+                return grammar()[2];
             }
             public void setCase(char c)
             {
@@ -227,7 +286,7 @@ namespace WelshConsole
             }
             public bool isSingular()
             {
-                return data[2].ElementAt(6) == 'S';
+                return data[2].ElementAt(4) == 'S';
             }
             public void setSingular()
             {
@@ -268,14 +327,20 @@ namespace WelshConsole
             bool filled;
             bool plural;
 
+            bool definite = false;
+            bool presentParticiple = false;
+            String typesString = "";
 
-            public WelshEnglishPiece(int howMany, char[] theTypes)
+            public WelshEnglishPiece(char[] theTypes) // removed the howmany variable
             {
-                theWords = new WordEntry[howMany]; //HOW MANY WHAT
+                theWords = new WordEntry[theTypes.Length]; //HOW MANY WHAT
                 type = theTypes;
-                actualLength = howMany;
+                actualLength = theTypes.Length;
                 clean();
-                
+                for(int i = 0; i < type.Length; i++)
+                {
+                    typesString += type[i];
+                }
 
             }
             public void clean()
@@ -286,6 +351,8 @@ namespace WelshConsole
                 present = new bool[actualLength]; //keeps track of whether a spot is filled....
                 filled = false;
                 plural = false;
+                definite = false;
+                presentParticiple = false;
             }
             public void fill(WordEntry w)
             {
@@ -296,7 +363,7 @@ namespace WelshConsole
                         theWords[i] = w;
                         present[i] = true;
                         filled = true;
-                        i = actualLength;
+                        break;
                     }
                 }
             }
@@ -314,6 +381,13 @@ namespace WelshConsole
             public String show(int i)
             {
                 return theWords[i].welsh();
+            }
+            public void show()
+            {
+                for(int i = 0;i < actualLength; i++)
+                {
+                    Console.WriteLine(type[i] + ": "  + show(i));
+                }
             }
             public bool empty()
             {
@@ -341,6 +415,27 @@ namespace WelshConsole
             {
                 plural = true;
             }
+            public void setDefinite(bool def)
+            {
+                this.definite = def;
+            }
+            public bool isDefinite()
+            {
+                return definite;
+            }
+            public void setPresentParticiple(bool p)
+            {
+                presentParticiple = p;
+            }
+            public bool isPresentParticiple()
+            {
+                return presentParticiple;
+            }
+            public String getTypesString()
+            {
+                return typesString;
+            }
+            
         }
         class WelshParser
         {
@@ -366,15 +461,88 @@ namespace WelshConsole
                 Be = false;
                 ic.Clean();
                 AdjustEnds();
+
+                //try the article from the front?
+                bool articleStart = false;
+                String word = sc.TellWord();
+                if(word == "y" || word == "yr")
+                {
+                    sc.increaseCurrentLocation();
+                    articleStart = true;
+                   // Console.WriteLine("Article Start Noted!");
+                    //keep in mind that this isn't always meaningless
+                }
+                
+
                 TryExclamation();
                 TryVerbPart();// moved this to before the subject
-                TrySubject();
-                
-                if (BeIsh())
+                //Console.WriteLine("Ended verb part before: " + sc.TellWord());
+                for (int i = 1; i < 4 && ic.Subject.empty(); i++)
+                {
+                    TrySubject(i);
+                  //  Console.WriteLine("Subject Pronoun: " + ic.Subject.tell('P'));
+                }
+
+                //if (!sc.hasNext()) return;
+                //Console.WriteLine("Ended subject part before: " + sc.TellWord());
+                TryPresentParticiple();
+                //Console.WriteLine("Ended participle part before: " + sc.TellWord());
+                //prepositional phrases
+
+                if (Be || BeIsh()) // replaced beish
+                {
                     TryPredicate();
+                   // Console.WriteLine("Trying predicate...");
+                }
                 else
                     TryObject();
+
+                if(articleStart && ic.VerbPart.empty())
+                {
+                   // Console.WriteLine("Article Start Applied!");
+                    ic.Subject.setDefinite(true);
+                }
+                //Console.WriteLine("Ended last part before: " + sc.TellWord());
             }
+            
+            void TryPresentParticiple()
+            {
+                int backupPosition = sc.tellCurrentLocation();
+
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    char pos = wt.find(sc.TellWord()).POS();
+                    if ("RV".Contains(pos)  && ic.PresParticiple.isEmpty(pos)) // if its a preposition or berb
+                    {
+                        ic.PresParticiple.fill(c);
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+                //if there isn't a verb in the present participle, we need to undo what we've done.
+                if (ic.PresParticiple.isEmpty('V'))
+                {
+                    ic.PresParticiple.clean();
+                    sc.setCurrentLocation(backupPosition);
+                }
+            }
+            
             void TryExclamation()
             {
                 //
@@ -383,14 +551,14 @@ namespace WelshConsole
                     bool done = false;
                     while(More() && !done)
                     {
-                        WordEntry c = wt.tell(wt.find(sc.TellWord()));
+                        WordEntry c = wt.find(sc.TellWord());
                         while(c.isBad() && !done)
                         {
                             if (More())
                             {
                                 sc.increaseCurrentLocation();
                                 if (More())
-                                    c = wt.tell(wt.find(sc.TellWord()));
+                                    c = wt.find(sc.TellWord());
                                 else
                                     done = true;
                             }
@@ -417,68 +585,164 @@ namespace WelshConsole
             }
             void TryNounPart(WelshEnglishPiece p)
             {
-                //
-                //
-                //
                 bool done = false;
-                while(More() && !done)
+                while (More() && !done)
                 {
-                    WordEntry c = wt.tell(wt.find(sc.TellWord()));
-                    while(c.isBad() && !done)
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
                     {
                         if (More())
                         {
                             sc.increaseCurrentLocation();
                             if (More())
-                                c = wt.tell(wt.find(sc.TellWord()));
+                                c = wt.find(sc.TellWord());
                             else
                                 done = true;
                         }
                         else
                             done = true;
                     }
-                    if (Nounish())
+                    if (Nounish(c))
                     {
                         p.fill(c);
                         if (wt.tellChange() == 'P')
                             p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
                         sc.increaseCurrentLocation();
                     }
                     else
                         done = true;
                 }
             }
-            void TrySubject()
+            void TrySubject(int attemptNumber)
             {
-                //
-                TryNounPart(ic.Subject);
+
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord(), attemptNumber);
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord(), attemptNumber);
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    
+                    if (Nounish(c))
+                    {
+                        ic.Subject.fill(c);
+                        
+                        if (wt.tellChange() == 'P')
+                            ic.Subject.makePlural();
+                        //if the subject is plural, the verb needs to change form
+                        if (c.isPlural())
+                        {
+                            ic.VerbPart.makePlural();
+                        }
+                        if(sc.tellPrevious().EndsWith("'r"))
+                        {
+                            ic.Subject.setDefinite(true);
+                        }
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
             }
             void TryVerbPart()
             {
                 //
                 while(More() && Verbish())
                 {
+                    
                     if (BeIsh())
-                        Be = true;
-                    if(wt.tell(wt.find(sc.TellWord())).person() == '1')
-                    {
-                        WordEntry t = new WordEntry(" ", "I", "P     ");
-                        ic.Subject.fill(t);
-                    }
+                       Be = true;
+                    //if (wt.find(sc.TellWord()).person() == '1')
+                    //{
+                    //   WordEntry t = new WordEntry(" ", "I", "P     ");
+                    //  ic.Subject.fill(t);
+                    //}
                     //if first person, fill that word entry into the subject
-                    ic.VerbPart.fill(wt.tell(wt.find(sc.TellWord())));
+                    ic.VerbPart.fill(wt.find(sc.TellWord()));
                     sc.increaseCurrentLocation();
                 }
+                
             }
             void TryObject()
             {
-                //
-                TryNounPart(ic.Object);
+                WelshEnglishPiece p = ic.Object;
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    if ("NAPDSMJFV".Contains(c.POS()))
+                    {
+                        p.fill(c);
+                        if (wt.tellChange() == 'P')
+                            p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
             }
             void TryPredicate()
             {
                 //
-                TryNounPart(ic.Predicate);
+                WelshEnglishPiece p = ic.Predicate;
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    
+                    if (ic.Predicate.getTypesString().Contains(c.POS()))
+                    {
+                        p.fill(c);
+                        if (wt.tellChange() == 'P')
+                            p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
             }
             bool BeIsh()
             {
@@ -487,7 +751,7 @@ namespace WelshConsole
                 //
                 if (More())
                 {
-                    char c = wt.tell(wt.find(sc.TellWord())).POS();
+                    char c = wt.find(sc.TellWord()).POS();
                     char d = 'N';
                     return (c == 'V' && d == 'N');
                 }
@@ -496,16 +760,27 @@ namespace WelshConsole
             bool Verbish()
             {
                 //
-                return More() && wt.tell(wt.find(sc.TellWord())).POS() == 'V';
+                return More() && wt.find(sc.TellWord()).POS() == 'V';
             }
-            bool Nounish()
+            bool Nounish(WordEntry w)
             {
                 //
                 //
                 if (More())
                 {
-                    char c = wt.tell(wt.find(sc.TellWord())).POS();
-                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J';
+                    char c = w.POS();
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F';
+                }
+                return false;
+            }
+            bool Predicatish()
+            {
+                //
+                //
+                if (More())
+                {
+                    char c = wt.find(sc.TellWord()).POS();
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F' || c == 'R'; // added preposition
                 }
                 return false;
             }
@@ -515,7 +790,7 @@ namespace WelshConsole
                 //
                 if (More())
                 {
-                    char c = wt.tell(wt.find(sc.TellWord())).POS();
+                    char c = wt.find(sc.TellWord()).POS();
                     return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'E';
                 }
                 return false;
@@ -524,7 +799,7 @@ namespace WelshConsole
             {
                 //
                 //
-                return wt.tell(wt.find(sc.TellWord())).person() == '1';
+                return wt.find(sc.TellWord()).person() == '1';
             }
             void AdjustEnds()
             {
@@ -562,7 +837,7 @@ namespace WelshConsole
             //
             //
 
-            public WelshEnglishPiece Vocative, Subject, VerbPart, Predicate, Object;
+            public WelshEnglishPiece Vocative, Subject, VerbPart, Predicate, Object, PresParticiple, Prepositional;
             bool InitialUppercase, Exclamation;
             char EndPunctuation; //
             public WelshEnglishIntermediateCode(int HowMany)
@@ -572,14 +847,21 @@ namespace WelshConsole
                 InitialUppercase = false;
                 Exclamation = false;
                 EndPunctuation = ' ';
-                char[] nounish = { 'A', 'P', 'D', 'S', 'M', 'J', 'N' };
+                char[] nounish = { 'A', 'P', 'D', 'S', 'M', 'J', 'N', 'R'};
+                char[] predicatish = { 'A', 'P', 'D', 'S', 'M', 'J', 'N' , 'R' };
                 char[] vocish = { 'E', 'A', 'P', 'D', 'S', 'M', 'J', 'N' };
-                Vocative = new WelshEnglishPiece(8, vocish);
-                Subject = new WelshEnglishPiece(7, nounish);
+                Vocative = new WelshEnglishPiece(vocish);
+                Subject = new WelshEnglishPiece(nounish);
                 char[] verbish = { 'V', 'B'};
-                VerbPart = new WelshEnglishPiece(2, verbish);
-                Predicate = new WelshEnglishPiece(7, nounish);
-                Object = new WelshEnglishPiece(7, nounish);
+                VerbPart = new WelshEnglishPiece(verbish);
+                Predicate = new WelshEnglishPiece(new char[] { 'A', 'P', 'D', 'S', 'M', 'J', 'N', 'R', 'V' });
+                Object = new WelshEnglishPiece(new char[]{ 'A', 'P', 'D', 'S', 'M', 'J', 'N', 'R', 'V' }); // added verb
+                char[] presPartish = { 'R', 'V'};
+                PresParticiple = new WelshEnglishPiece(presPartish);
+
+                char[] prepositional = { 'R', 'N', 'J', 'A'};
+                Prepositional = new WelshEnglishPiece(nounish);
+
             }
             public void Clean()  //
             {
@@ -594,6 +876,8 @@ namespace WelshConsole
                 VerbPart.clean();
                 Predicate.clean();
                 Object.clean();
+                PresParticiple.clean();
+                Prepositional.clean();
             }
 
             public void SetUpperCase(bool b)
@@ -627,9 +911,20 @@ namespace WelshConsole
 
             public void Show()   //
             {
+                Console.WriteLine("\nVerb Part:");
+                VerbPart.show();
+                Console.WriteLine("\nSubject Part:");
+                Subject.show();
+                Console.WriteLine("\nPresent Participle: ");
+                PresParticiple.show();
+                Console.WriteLine("\nPredicate Part:");
+                Predicate.show();
+                Console.WriteLine("\nObject Part:");
+                Object.show();
                 //
                 //
                 //TODO
+
             }
         }//
         class WelshEnglishWordTable
@@ -649,43 +944,65 @@ namespace WelshConsole
                 lex = new WordEntry[MAXSIZE];
                 //polish example
                 //pushLex("dziecko", "child", "NIXNS");
-                pushLex("mund", "goes", "VIX3S");
-                pushLex("mund", "go", "VIX1P");
+
+                //Verbs
+                //pushLex("mynd", "goes", "VIX3SP");
+                pushLex("mynd", "go", "VIX1PP").addIRPP("going");
                 
-                pushLex("dysgu", "learn", "NIXNS"); //also means teach...
-                pushLex("gorwedd", "lie", "NIXNS");
-                pushLex("hoffi", "like", "NIXNS");
-                pushLex("chwarae", "play", "NIXNS");
-                pushLex("darllen", "read", "NIXNS");
-                pushLex("rhedeg", "run", "NIXNS");
-                pushLex("canu", "sing", "NIXNS"); //or to play an instrument
-                pushLex("eistedd", "sit", "NIXNS");
-                pushLex("sefull", "stand", "NIXNS");
-                pushLex("cerdedd", "walk", "NIXNS");
-                pushLex("gwisgo", "wear", "NIXNS");
-                pushLex("gweithio", "work", "NIXNS");
-                pushLex("ysgrifennu", "write", "NIXNS");
-                pushLex("a", "and", "NIXNS"); //ac before a vowel
-                pushLex("a'r", "and the", "NIXNS");
-                pushLex("ar", "on", "NIXNS");
-                pushLex("dan", "under", "NIXNS");
-                pushLex("drwɥ", "through", "NIXNS");
-                pushLex("trwɥ", "through", "NIXNS");
-                pushLex("drwɥ'r", "through the", "NIXNS");
-                pushLex("trwɥ'r", "through the", "NIXNS");
-                pushLex("i", "to", "NIXNS"); //or into
-                pushLex("i'r", "to the", "NIXNS");
-                pushLex("wrth", "near", "NIXNS"); //or by
-                pushLex("yn", "in", "NIXNS");
-                pushLex("Saesneg", "English", "NIXNS");
-                pushLex("Cymraeg", "Welsh", "NIXNS");
+                pushLex("dysgu", "learn", "VRX1PP"); //also means teach...
+                pushLex("gorwedd", "lie", "VRX1PP").addIRPP("lying");
+                pushLex("hoffi", "like", "VRX1PP");
+                pushLex("chwarae", "play", "VRX1PP").addIRPP("playing");
+                pushLex("darllen", "read", "VRX1PP").addIRPP("reading");
+                pushLex("rhedeg", "run", "VRX1PP");
+                pushLex("canu", "sing", "VRX1PP"); //or to play an instrument
+                pushLex("eistedd", "sit", "VRX1PP");
+                pushLex("sefyll", "stand", "VRX1PP");
+                pushLex("cerdedd", "walk", "VRX1PP");
+                pushLex("gwisgo", "wear", "VRX1PP").addIRPP("wearing");
+                pushLex("gweithio", "work", "VRX1PP");
+                pushLex("ysgrifennu", "write", "VRX1PP");
+                //To be verbs
+                pushLex("wyf", "am", "VIX1PP"); // I
+                pushLex("wyt", "art", "VIX2PP"); // Thou
+                pushLex("mae", "is", "VIX3SP"); // he/she
+                pushLex("ydym", "are", "VIX3PP"); // we
+                pushLex("ydych", "are", "VIX2PP"); // you
+                pushLex("maent", "are", "VIX3PP"); // they
+
+                //Weird verb cheats for the and modifiers
+                pushLex("y", "the", "AIX3SP"); // these don't get recgonized if set to articles
+                pushLex("yr", "the", "AIX3SP");
+
+
+                //Conjunctions
+                pushLex("a", "and", "CRXNP"); //is the conjunction technically considered plural....?
+                pushLex("ac", "and", "CRXNP");
+                pushLex("a'r", "and the", "CRXNP");
+
+                //Prepositions
+                pushLex("ar", "on", "RRXN3P");
+                pushLex("dan", "under", "RRXN3P");
+                pushLex("drwy", "through", "RRXN3P");
+                pushLex("trwy", "through", "RRXN3P");
+                //pushLex("drwy'r", "through the", "RRXN3P");
+                //pushLex("trwy'r", "through the", "RRXN3P");
+                pushLex("i", "to", "RRXN3P"); //or into
+                pushLex("i'r", "to the", "RRXN3P");
+                pushLex("wrth", "near", "RRXN3P"); //or by
+                pushLex("yn", "in", "RRXN3P");
+
+                //Nouns
+                pushLex("Saesneg", "English", "NIXNS").setNoEI(true);
+                pushLex("Cymraeg", "Welsh", "NIXNS").setNoEI(true);
                 pushLex("awyrn", "aeroplane", "NIXNS");
                 pushLex("eroplên", "aeroplane", "NIXNS");
                 pushLex("anthem", "anthem", "NIXNS");
                 pushLex("llyfr", "book", "NIXNS");
                 pushLex("bachgen", "boy", "NIXNS");
+                pushLex("bechgyn", "boys", "NIXNP");
                 pushLex("bws", "bus", "NIXNS");
-                pushLex("eglwɥs", "church", "NIXNS");
+                pushLex("eglwys", "church", "NIXNS");
                 pushLex("cloc", "clock", "NIXNS");
                 pushLex("ci", "dog", "NIXNS");
                 pushLex("drws", "door", "NIXNS");
@@ -694,7 +1011,7 @@ namespace WelshConsole
                 pushLex("tân", "fire", "NIXNS");
                 pushLex("llawr", "floor", "NIXNS");
                 pushLex("het", "hat", "NIXNS");
-                pushLex("tɥ", "house", "NIXNS"); //There's supposed to be a circumflex on that upsidedown h, but I couldn't figure out how
+                pushLex("tŷ", "house", "NIXNS");
                 pushLex("map", "map", "NIXNS");
                 pushLex("enw", "name", "NIXNS");
                 pushLex("papur", "paper", "NIXNS");
@@ -708,46 +1025,67 @@ namespace WelshConsole
                 pushLex("bwrdd", "table", "NIXNS");
                 pushLex("mur", "wall", "NIXNS");
                 pushLex("ffenestr", "window", "NIXNS");
-                pushLex("heno", "tonight", "NIXNS");
-                pushLex("heddiw", "today", "NIXNS");
-                pushLex("fi", "I", "PIXNS");
-                pushLex("ti", "thou", "PIXNS");
+                pushLex("heno", "tonight", "NIXNS").setNoEI(true);
+                pushLex("heddiw", "today", "NIXNS").setNoEI(true);
+                pushLex("dyn", "man", "NIXNS");
+
+                //Pronouns
+                pushLex("fi", "I", "PIXNP");
+                pushLex("i", "I", "PIXNP");
+                pushLex("ti", "thou", "PIXNP");
                 pushLex("ef", "he", "PIXMS");
                 pushLex("hi", "she", "PIXFS");
                 pushLex("ni", "we", "PIXMP");
                 pushLex("chwi", "you", "PIXNS");
-                pushLex("hwɥ", "they", "PIXMP");
+                pushLex("hwy", "they", "PIXMP");
                 //set current size after loading all the words
                 currentSize = lexBuildingIndex;
             }
             /*
              * This function exists solely to help me keep this dictionary clean when I try to add new things
              * */
-            private void pushLex(String welsh, String English, String info)
+            private WordEntry pushLex(String welsh, String English, String info)
             {
-                lex[lexBuildingIndex++] = new WordEntry(welsh, English, info);
+                return lex[lexBuildingIndex++] = new WordEntry(welsh, English, info);
             }
-            public int find(String word)
+            public WordEntry find(String word)
             {
+                return find(word, 1);
+            }
+            public WordEntry find(String word, int attemptNumber)
+            {
+                int versionsFound = 0;
                 //search function. Is the word provided english or welsh?
-                for(int i = 0;i < currentSize; i++)
+                int lastFoundIndex = -1; // backup incase the second attempt fails
+                for (int i = 0; i < currentSize; i++)
                 {
-                    if(lex[i].welsh() == word)
+                    if (lex[i].welsh() == word)
                     {
-                        return i;
+                        lastFoundIndex = i;
+                        if (++versionsFound == attemptNumber)
+                            return lex[i];
+                        else
+                            continue;
+                        
                     }
                 }
+                if (lastFoundIndex != -1) return lex[lastFoundIndex];
                 String cutDefinite = word.Substring(0, word.Length - (word.EndsWith("'r") ? 2 : 0)); //removes 'r that may be added from definite article
                 for (int i = 0; i < currentSize; i++)
                 {
                     if (lex[i].welsh() == cutDefinite)
                     {
-                        return i;
+                        lastFoundIndex = i;
+                        if (++versionsFound == attemptNumber)
+                            return lex[i];
+                        else
+                            continue;
                     }
                 }
+                if (lastFoundIndex != -1) return lex[lastFoundIndex];
 
-
-                return -1;
+                Console.WriteLine("No Definition found for: " + word);
+                return new WordEntry(" ", "UNKNOWN", "Z     ");
             }
             public char tellChange()
             {
@@ -787,9 +1125,31 @@ namespace WelshConsole
                 getExclamation();
                 getSubject();
                 getVerbPart();
+                getPresentParticiple();
+
                 getPredicate();
                 getObject();
                 adjustEnds();
+            }
+            void getPresentParticiple()
+            {
+                if (!ic.PresParticiple.empty())
+                {
+                    if(!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
+                    {
+                        String english = ic.PresParticiple.tell('V').english();
+                        if("aeiou".Contains(english[english.Length - 1]))
+                        {
+                            english = english.Substring(0, english.Length - 1);
+                        }
+                        else if ("aeiou".Contains(english[english.Length - 2])) english += english[english.Length - 1];
+                        english += "ing";
+
+                        if (ic.PresParticiple.tell('V').hasIrregularPresentParticiple()) english = ic.PresParticiple.tell('V').irregularPresentParticiple;
+
+                        words[actualLength++] = english;
+                    }
+                }
             }
             void getExclamation()
             {
@@ -816,12 +1176,34 @@ namespace WelshConsole
             {
                 if (!p.empty())
                 {
-                    if(p.isEmpty('S') && p.isEmpty('D') && p.isEmpty('M') && p.isEmpty('P') && !p.isEmpty('N'))
+                    if (!p.isEmpty('R'))
                     {
-                        //no possessive, demonstrative, numeral, pronoun, but noun is present
-                        words[actualLength] = "the";
+                        words[actualLength] = p.tell('R').english();
                         actualLength++;
                     }
+                    if (!p.isEmpty('A'))
+                    {
+                        words[actualLength++] = p.tell('A').english();
+                    }
+                    if (p.isDefinite() && p.isEmpty('P'))
+                    {
+                        //otherwise use the indefinite article, which doesn't exist in welsh
+                        words[actualLength++] = "the";
+                    } else
+                    if ((p.isEmpty('S') && p.isEmpty('D') && p.isEmpty('M') && p.isEmpty('P') && !p.isEmpty('N') && p.isEmpty('A')) || (!p.isDefinite() && p.isEmpty('P') && p.isEmpty('A') && p.isEmpty('V'))) 
+                    {
+                        //no possessive, demonstrative, numeral, pronoun, but noun is present
+                        //OR if the piece has been deemed definite because of the Y before it
+                        if (!p.isEmpty('N') && !p.tell('N').noEnglishIndefinite)
+                        {
+                            words[actualLength] = "a";
+                            actualLength++;
+                        }
+                    } 
+
+
+
+
                     if (!p.isEmpty('P'))
                     {
                         words[actualLength] = p.tell('P').english();
@@ -865,17 +1247,45 @@ namespace WelshConsole
             {
                 if (!ic.VerbPart.empty())
                 {
-                    words[actualLength] = ic.VerbPart.tell('V').english();
+                    String word = ic.VerbPart.tell('V').english();
+                    //fix the ending of the word
+                    if (!ic.VerbPart.isPlural())
+                    {
+                        if (ic.VerbPart.tell('V').isRegular())
+                        {
+                            word += "s";
+                        }
+                    } else
+                    {
+                        //is plural
+                        if(word == "is")
+                        {
+                            //stupidly irregular case
+                            word = "are";
+                        }
+                    }
+
+
+                    words[actualLength] = word;
                     actualLength++;
                 }
             }
             void getPredicate()
             {
+                if (!ic.Predicate.isEmpty('V'))
+                {
+                    words[actualLength++] = "to " + ic.Predicate.tell('V').english();
+                }
                 getNounPart(ic.Predicate);
             }
             void getObject()
             {
-                getNounPart(ic.Predicate);
+                if (!ic.Object.isEmpty('V'))
+                {
+                    words[actualLength++] = "to " + ic.Object.tell('V');
+                }
+                getNounPart(ic.Object);
+                //FIX THIS
             }
             void adjustEnds()
             {
@@ -925,7 +1335,7 @@ namespace WelshConsole
                 generator = gen;
                 outSentence = "";
             }
-            void toSentence()
+            public void toSentence()
             {
                 outSentence = generator.tell(0);
                 for(int i = 1;i < generator.tellSize(); i++)
@@ -939,6 +1349,11 @@ namespace WelshConsole
                 Console.WriteLine("\nTranslation: ");
                 Console.WriteLine(outSentence + "\n");
 
+            }
+            public String getSentence()
+            {
+                
+                return outSentence;
             }
         }
         class WelshToEnglish
@@ -963,6 +1378,49 @@ namespace WelshConsole
                 generator = new EnglishGenerator(code, table);
                 output = new EnglishOutput(generator);
             }
+            public WelshToEnglish(String filename)
+            {
+                source = new Source(filename);
+                Console.WriteLine("Loaded testfile with " + lines + " Lines");
+                scanner = new Scanner(source);
+                code = new WelshEnglishIntermediateCode(PIECENUMBER);
+                table = new WelshEnglishWordTable();
+                parser = new WelshParser(scanner, code, table);
+                generator = new EnglishGenerator(code, table);
+                output = new EnglishOutput(generator);
+            }
+
+            public void runTestFile()
+            {
+                int index = 0;
+                int correctCounter = 0;
+                Console.WriteLine("Starting test....");
+                while (scanner.scanSentence())
+                {
+                    //scanner.show();
+                    parser.DoParse();
+                    //code.Show();
+
+                    generator.generate();
+                    //generator.show();
+                    output.toSentence();
+                    if(output.getSentence() == testData[index, 1])
+                    {
+                        //correct
+                        correctCounter++;
+                       
+                    } else
+                    {
+                        Console.WriteLine("Translate incorrect for line: " + ((index + 1) * 2 - 1));
+                    }
+                    index++;
+                }
+                Console.WriteLine("Test Completed! " + correctCounter + " / " + lines + " translations correct");
+            }
+
+
+
+
             public void doASentence()
             {
                 //use pieces in correct order
@@ -970,6 +1428,7 @@ namespace WelshConsole
                 scanner.show();
                 parser.DoParse();
                 code.Show();
+                
                 generator.generate();
                 generator.show();
                 output.tellSentence();
@@ -979,28 +1438,19 @@ namespace WelshConsole
         {
             static void Main(string[] args)
             {
-                /*Source source = new Source();
-                Scanner scanner = new Scanner(source);
 
 
-                scanner.scanSentence();
-                scanner.removeEndPunctuation();
-                Console.WriteLine(scanner.howMany());
+                Console.OutputEncoding = System.Text.Encoding.Unicode;//required to be able to read that stupid upside down h
+                Console.InputEncoding = System.Text.Encoding.Unicode;
 
-                Source diskSource = new Source("WelshTest.txt");
-                Scanner diskScanner = new Scanner(diskSource);
+                WelshToEnglish we = new WelshToEnglish("WelshTest.txt");
+                we.runTestFile();
 
-                diskScanner.scanSentence();
-                diskScanner.removeEndPunctuation();
-                Console.WriteLine(diskScanner.howMany());*/
 
-                //Actual code will loop to test 25 sentences.
-                WelshToEnglish we = new WelshToEnglish();
-
-                for(int i = 0;i < 25; i++)
-                {
-                    we.doASentence();
-                }
+                //for (int i = 0; i < 25; i++)
+                //{
+                //    we.doASentence();
+                //}
             }
         }
     }
