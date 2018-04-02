@@ -331,6 +331,8 @@ namespace WelshConsole
             bool presentParticiple = false;
             String typesString = "";
 
+            List<WelshEnglishPiece> extraPrepositionals = new List<WelshEnglishPiece>();
+
             public WelshEnglishPiece(char[] theTypes) // removed the howmany variable
             {
                 theWords = new WordEntry[theTypes.Length]; //HOW MANY WHAT
@@ -338,6 +340,18 @@ namespace WelshConsole
                 actualLength = theTypes.Length;
                 clean();
                 for(int i = 0; i < type.Length; i++)
+                {
+                    typesString += type[i];
+                }
+
+            }
+            public WelshEnglishPiece(String theTypes) // removed the howmany variable
+            {
+                theWords = new WordEntry[theTypes.Length]; //HOW MANY WHAT
+                type = theTypes.ToArray();
+                actualLength = theTypes.Length;
+                clean();
+                for (int i = 0; i < type.Length; i++)
                 {
                     typesString += type[i];
                 }
@@ -353,19 +367,38 @@ namespace WelshConsole
                 plural = false;
                 definite = false;
                 presentParticiple = false;
+                extraPrepositionals.Clear();
             }
-            public void fill(WordEntry w)
+            public WelshEnglishPiece fill(WordEntry w)
             {
-                for(int i = 0;i < actualLength; i++)
-                {
-                    if(w.POS() == type[i])
+                if (isEmpty(w.POS()) && isEmpty('N')) { 
+                    for (int i = 0; i < actualLength; i++)
                     {
-                        theWords[i] = w;
-                        present[i] = true;
-                        filled = true;
-                        break;
+                        if (w.POS() == type[i])
+                        {
+                            theWords[i] = w;
+                            present[i] = true;
+                            filled = true;
+                            return this;
+                        }
+                    }
+                }  else 
+                {
+                   // Console.WriteLine("POS overwrite attempt..." + w);
+                    bool filled = false;
+                    while (!filled) { 
+
+                        for(int i = 0;i < getExtraPrepositionalsCount(); i++)
+                        {
+                            if (!extraPrepositionals[i].isEmpty(w.POS())) continue;
+                            //Console.WriteLine(w + " was pushed into a subPrep");
+                            return extraPrepositionals[i].fill(w);
+                            
+                        }
+                        extraPrepositionals.Add(new WelshEnglishPiece("RNAV"));
                     }
                 }
+                return null;
             }
             public WordEntry tell(char c)
             {
@@ -387,6 +420,11 @@ namespace WelshConsole
                 for(int i = 0;i < actualLength; i++)
                 {
                     Console.WriteLine(type[i] + ": "  + show(i));
+                }
+                for(int i = 0;i < extraPrepositionals.Count; i++)
+                {
+                    Console.WriteLine("\tSub" + i + ":");
+                    extraPrepositionals[i].show();
                 }
             }
             public bool empty()
@@ -421,6 +459,7 @@ namespace WelshConsole
             }
             public bool isDefinite()
             {
+                //loop to see if a word ends with 'r?
                 return definite;
             }
             public void setPresentParticiple(bool p)
@@ -434,6 +473,19 @@ namespace WelshConsole
             public String getTypesString()
             {
                 return typesString;
+            }
+
+            public bool hasExtraPrepositionals()
+            {
+                return extraPrepositionals.Count != 0;
+            }
+            public int getExtraPrepositionalsCount()
+            {
+                return extraPrepositionals.Count;
+            }
+            public WelshEnglishPiece getExtraPrepositional(int index)
+            {
+                return extraPrepositionals[index];
             }
             
         }
@@ -480,14 +532,9 @@ namespace WelshConsole
                 for (int i = 1; i < 4 && ic.Subject.empty(); i++)
                 {
                     TrySubject(i);
-                  //  Console.WriteLine("Subject Pronoun: " + ic.Subject.tell('P'));
                 }
-
-                //if (!sc.hasNext()) return;
-                //Console.WriteLine("Ended subject part before: " + sc.TellWord());
+                
                 TryPresentParticiple();
-                //Console.WriteLine("Ended participle part before: " + sc.TellWord());
-                //prepositional phrases
 
                 if (Be || BeIsh()) // replaced beish
                 {
@@ -733,7 +780,10 @@ namespace WelshConsole
                     
                     if (ic.Predicate.getTypesString().Contains(c.POS()))
                     {
-                        p.fill(c);
+                        WelshEnglishPiece placedIn = p.fill(c);
+                        if (sc.TellWord().EndsWith("'r"))
+                            placedIn.setDefinite(true);
+                        
                         if (wt.tellChange() == 'P')
                             p.makePlural();
                         //if the subject is plural, the verb needs to change form
@@ -780,7 +830,7 @@ namespace WelshConsole
                 if (More())
                 {
                     char c = wt.find(sc.TellWord()).POS();
-                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F' || c == 'R'; // added preposition
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F' || c == 'R' || c == 'C'; // added preposition
                 }
                 return false;
             }
@@ -854,7 +904,7 @@ namespace WelshConsole
                 Subject = new WelshEnglishPiece(nounish);
                 char[] verbish = { 'V', 'B'};
                 VerbPart = new WelshEnglishPiece(verbish);
-                Predicate = new WelshEnglishPiece(new char[] { 'A', 'P', 'D', 'S', 'M', 'J', 'N', 'R', 'V' });
+                Predicate = new WelshEnglishPiece("APDSMJNRVC");
                 Object = new WelshEnglishPiece(new char[]{ 'A', 'P', 'D', 'S', 'M', 'J', 'N', 'R', 'V' }); // added verb
                 char[] presPartish = { 'R', 'V'};
                 PresParticiple = new WelshEnglishPiece(presPartish);
@@ -988,7 +1038,7 @@ namespace WelshConsole
                 //pushLex("drwy'r", "through the", "RRXN3P");
                 //pushLex("trwy'r", "through the", "RRXN3P");
                 pushLex("i", "to", "RRXN3P"); //or into
-                pushLex("i'r", "to the", "RRXN3P");
+                //pushLex("i'r", "to the", "RRXN3P");
                 pushLex("wrth", "near", "RRXN3P"); //or by
                 pushLex("yn", "in", "RRXN3P");
 
@@ -1127,18 +1177,41 @@ namespace WelshConsole
                 getVerbPart();
                 getPresentParticiple();
 
+
                 getPredicate();
                 getObject();
+
+                //fix the am liking scenario
+
+
+
+
                 adjustEnds();
             }
             void getPresentParticiple()
             {
-                if (!ic.PresParticiple.empty())
+                bool like = !ic.PresParticiple.empty() && ic.PresParticiple.tell('V').english() == "like";
+                if (like)
                 {
-                    if(!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
+                    if (!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
+                    {
+                        String word = ic.PresParticiple.tell('V').english();
+                        if (!ic.VerbPart.isPlural())
+                        {
+                            if (ic.PresParticiple.tell('V').isRegular())
+                            {
+                                word += "s";
+                            }
+                        }
+                        words[actualLength++] = word;
+                    }
+                }
+                else if (!ic.PresParticiple.empty())
+                {
+                    if (!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
                     {
                         String english = ic.PresParticiple.tell('V').english();
-                        if("aeiou".Contains(english[english.Length - 1]))
+                        if ("aeiou".Contains(english[english.Length - 1]))
                         {
                             english = english.Substring(0, english.Length - 1);
                         }
@@ -1176,6 +1249,11 @@ namespace WelshConsole
             {
                 if (!p.empty())
                 {
+
+                    if (!p.isEmpty('V'))
+                    {
+                        words[actualLength++] = "to " + p.tell('V').english();
+                    }
                     if (!p.isEmpty('R'))
                     {
                         words[actualLength] = p.tell('R').english();
@@ -1241,11 +1319,22 @@ namespace WelshConsole
                         words[actualLength] = p.tell('N').english() + (p.isPlural() ? "s" : "");
                         actualLength++;
                     }
+                    if (!p.isEmpty('C'))
+                    {
+                        words[actualLength++] = p.tell('C').english();
+                    }
+                    
+                    //Console.WriteLine("Extra Prepositionals: " + p.getExtraPrepositionalsCount());
+                    for(int i = 0;i < p.getExtraPrepositionalsCount(); i++)
+                    {
+                        getNounPart(p.getExtraPrepositional(i));
+                    }
                 }
             }
             void getVerbPart()
             {
-                if (!ic.VerbPart.empty())
+                bool liking = !ic.PresParticiple.empty() && ic.PresParticiple.tell('V').english() == "like";
+                if (!ic.VerbPart.empty() && !liking)
                 {
                     String word = ic.VerbPart.tell('V').english();
                     //fix the ending of the word
@@ -1272,10 +1361,7 @@ namespace WelshConsole
             }
             void getPredicate()
             {
-                if (!ic.Predicate.isEmpty('V'))
-                {
-                    words[actualLength++] = "to " + ic.Predicate.tell('V').english();
-                }
+                
                 getNounPart(ic.Predicate);
             }
             void getObject()
@@ -1443,14 +1529,25 @@ namespace WelshConsole
                 Console.OutputEncoding = System.Text.Encoding.Unicode;//required to be able to read that stupid upside down h
                 Console.InputEncoding = System.Text.Encoding.Unicode;
 
-                WelshToEnglish we = new WelshToEnglish("WelshTest.txt");
-                we.runTestFile();
+                bool fullTest = true;
+
+                WelshToEnglish we = (fullTest ? new WelshToEnglish("welshtest.txt") : new WelshToEnglish());
 
 
-                //for (int i = 0; i < 25; i++)
-                //{
-                //    we.doASentence();
-                //}
+
+
+                if (fullTest)
+                {
+                    we.runTestFile();
+                }
+                else
+                {
+
+                    for (int i = 0; i < 25; i++)
+                    {
+                        we.doASentence();
+                    }
+                }
             }
         }
     }

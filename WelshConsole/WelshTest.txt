@@ -35,11 +35,11 @@ The clock is on the table in the house
 Y mae hi yn gwisgo het
 She is wearing a hat
 Yr ydych chwi yn mynd trwy'r afon
-You are going through a river
+You are going through the river
 Y mae'r ci yn gorwedd dan y bwrdd
 The dog is lying under the table
 Y mae'r bachgen yn darllen llyfr yn y tŷ wrth y tân
-The boy is reading a book in the house by the fire
+The boy is reading a book in the house near the fire
 Y mae bachgen yn chwarae yn y cae
 A boy is playing in the field
 Yr ydym ni yn dysgu darllen Saesneg
@@ -49,7 +49,7 @@ A map is on the wall
 Yr ydych chwi yn dysgu ysgrifennu heddiw
 You are learning to write today
 Yr wyf i yn hoffi ysgrifennu a darllen
-I like to write
+I like to write and to read
 Yr ydych chwi yn sefyll wrth y tân
 You are standing near the fire
 Y mae'r bws yn sefyll ar y ffordd wrth yr eglwys
