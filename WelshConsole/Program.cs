@@ -371,7 +371,7 @@ namespace WelshConsole
             }
             public WelshEnglishPiece fill(WordEntry w)
             {
-                if (isEmpty(w.POS()) && isEmpty('N')) { 
+                if ((isEmpty(w.POS()) && isEmpty('N')) || ("D".Contains(w.POS()) && !isEmpty('N') && isEmpty('D'))){ 
                     for (int i = 0; i < actualLength; i++)
                     {
                         if (w.POS() == type[i])
@@ -384,18 +384,16 @@ namespace WelshConsole
                     }
                 }  else 
                 {
-                   // Console.WriteLine("POS overwrite attempt..." + w);
                     bool filled = false;
                     while (!filled) { 
 
                         for(int i = 0;i < getExtraPrepositionalsCount(); i++)
                         {
                             if (!extraPrepositionals[i].isEmpty(w.POS())) continue;
-                            //Console.WriteLine(w + " was pushed into a subPrep");
                             return extraPrepositionals[i].fill(w);
                             
                         }
-                        extraPrepositionals.Add(new WelshEnglishPiece("RNAV"));
+                        extraPrepositionals.Add(new WelshEnglishPiece("RNAVD"));
                     }
                 }
                 return null;
@@ -430,6 +428,13 @@ namespace WelshConsole
             public bool empty()
             {
                 return !filled; // This function makes absolutely no sense
+            }
+            public bool hasPiece(char c)
+            {
+                for (int i = 0; i < actualLength; i++)
+                    if (c == type[i])
+                        return true;
+                return false;
             }
             public bool isEmpty(char c)
             {
@@ -521,14 +526,12 @@ namespace WelshConsole
                 {
                     sc.increaseCurrentLocation();
                     articleStart = true;
-                   // Console.WriteLine("Article Start Noted!");
                     //keep in mind that this isn't always meaningless
                 }
                 
 
                 TryExclamation();
                 TryVerbPart();// moved this to before the subject
-                //Console.WriteLine("Ended verb part before: " + sc.TellWord());
                 for (int i = 1; i < 4 && ic.Subject.empty(); i++)
                 {
                     TrySubject(i);
@@ -539,17 +542,14 @@ namespace WelshConsole
                 if (Be || BeIsh()) // replaced beish
                 {
                     TryPredicate();
-                   // Console.WriteLine("Trying predicate...");
                 }
                 else
                     TryObject();
 
                 if(articleStart && ic.VerbPart.empty())
                 {
-                   // Console.WriteLine("Article Start Applied!");
                     ic.Subject.setDefinite(true);
                 }
-                //Console.WriteLine("Ended last part before: " + sc.TellWord());
             }
             
             void TryPresentParticiple()
@@ -686,7 +686,6 @@ namespace WelshConsole
                     if (Nounish(c))
                     {
                         ic.Subject.fill(c);
-                        
                         if (wt.tellChange() == 'P')
                             ic.Subject.makePlural();
                         //if the subject is plural, the verb needs to change form
@@ -981,7 +980,7 @@ namespace WelshConsole
         {
             int currentSize;
             char change;
-            const int MAXSIZE = 100;
+            const int MAXSIZE = 1000;
             WordEntry[] lex;
 
             int lexBuildingIndex = 0;
@@ -1008,10 +1007,11 @@ namespace WelshConsole
                 pushLex("canu", "sing", "VRX1PP"); //or to play an instrument
                 pushLex("eistedd", "sit", "VRX1PP");
                 pushLex("sefyll", "stand", "VRX1PP");
-                pushLex("cerdedd", "walk", "VRX1PP");
+                pushLex("cerdded", "walk", "VRX1PP");
                 pushLex("gwisgo", "wear", "VRX1PP").addIRPP("wearing");
                 pushLex("gweithio", "work", "VRX1PP");
                 pushLex("ysgrifennu", "write", "VRX1PP");
+                pushLex("cysgu", "sleep", "VRX1PP").addIRPP("sleeping");
                 //To be verbs
                 pushLex("wyf", "am", "VIX1PP"); // I
                 pushLex("wyt", "art", "VIX2PP"); // Thou
@@ -1029,6 +1029,7 @@ namespace WelshConsole
                 pushLex("a", "and", "CRXNP"); //is the conjunction technically considered plural....?
                 pushLex("ac", "and", "CRXNP");
                 pushLex("a'r", "and the", "CRXNP");
+                pushLex("ond", "but", "CRXNP");
 
                 //Prepositions
                 pushLex("ar", "on", "RRXN3P");
@@ -1078,6 +1079,72 @@ namespace WelshConsole
                 pushLex("heno", "tonight", "NIXNS").setNoEI(true);
                 pushLex("heddiw", "today", "NIXNS").setNoEI(true);
                 pushLex("dyn", "man", "NIXNS");
+                pushLex("dydd", "day", "NIXNS");
+                pushLex("bore", "morning", "NIXNS");
+
+
+                pushLex("wythnos", "week", "NIXFS");
+                pushLex("cadair", "chair", "NIXFS");
+                pushLex("pib", "pipe", "NIXFS");
+                pushLex("tref", "town", "NIXFS");
+                pushLex("gardd", "garden", "NIXFS");
+                pushLex("basged", "basket", "NIXFS");
+                pushLex("desg", "desk", "NIXFS");
+                pushLex("mam", "mother", "NIXFS");
+                pushLex("geneth", "girl", "NIXFS");
+                pushLex("ynys", "island", "NIXFS");
+                pushLex("cegin", "kitchen", "NIXFS");
+                pushLex("ysgol", "school", "NIXFS");
+                
+
+                //automatically push extra words for feminine "the"
+                int count = lexBuildingIndex;
+                for(int i = 0;i < count; i++)
+                {
+                    if(lex[i].gender() == 'F')
+                    {
+                        string mutated = lex[i].welsh().Substring(1);
+                        string newStart = lex[i].welsh()[0] + "";
+                        switch (lex[i].welsh()[0])
+                        {
+                            case 'c':
+                                newStart = "g";
+                                break;
+                            case 'p':
+                                newStart = "b";
+                                break;
+                            case 't':
+                                newStart = "d";
+                                break;
+                            case 'g':
+                                newStart = "";
+                                break;
+                            case 'b':
+                                newStart = "f";
+                                break;
+                            case 'd':
+                                newStart = "dd";
+                                break;
+                            case 'm':
+                                newStart = "f";
+                                break;
+                        }
+                        if(newStart + mutated != lex[i].welsh()) // only push new one if it changes
+                            pushLex(newStart + mutated, lex[i].english(), lex[i].grammar());
+                    }
+                }
+
+                //demonstrative adjectives
+                pushLex("hwn", "this", "DRXMS");
+                pushLex("hon", "this", "DRXFS");
+                pushLex("hyn", "these", "DRXNP");
+                pushLex("bob", "every", "DRXNP");
+                pushLex("pob", "every", "DRXNP");
+                pushLex("hwnnw", "that", "DRXMS");
+                pushLex("honno", "that", "DRXFS");
+                pushLex("hynny", "those", "DRXNP");
+
+
 
                 //Pronouns
                 pushLex("fi", "I", "PIXNP");
@@ -1086,7 +1153,7 @@ namespace WelshConsole
                 pushLex("ef", "he", "PIXMS");
                 pushLex("hi", "she", "PIXFS");
                 pushLex("ni", "we", "PIXMP");
-                pushLex("chwi", "you", "PIXNS");
+                pushLex("chwi", "you", "PIXNP");
                 pushLex("hwy", "they", "PIXMP");
                 //set current size after loading all the words
                 currentSize = lexBuildingIndex;
@@ -1259,16 +1326,17 @@ namespace WelshConsole
                         words[actualLength] = p.tell('R').english();
                         actualLength++;
                     }
-                    if (!p.isEmpty('A'))
+                    if (!p.isEmpty('A') && p.isEmpty('D'))
                     {
                         words[actualLength++] = p.tell('A').english();
                     }
-                    if (p.isDefinite() && p.isEmpty('P'))
+                    if (p.isDefinite() && p.isEmpty('P') && (!p.hasPiece('D') || p.isEmpty('D')))
+                        
                     {
                         //otherwise use the indefinite article, which doesn't exist in welsh
                         words[actualLength++] = "the";
                     } else
-                    if ((p.isEmpty('S') && p.isEmpty('D') && p.isEmpty('M') && p.isEmpty('P') && !p.isEmpty('N') && p.isEmpty('A')) || (!p.isDefinite() && p.isEmpty('P') && p.isEmpty('A') && p.isEmpty('V'))) 
+                    if ((p.isEmpty('S') && p.isEmpty('D') && p.isEmpty('M') && p.isEmpty('P') && !p.isEmpty('N') && p.isEmpty('A')) || (!p.isDefinite() && p.isEmpty('P') && p.isEmpty('A') && p.isEmpty('V') && p.isEmpty('D'))) 
                     {
                         //no possessive, demonstrative, numeral, pronoun, but noun is present
                         //OR if the piece has been deemed definite because of the Y before it
@@ -1289,7 +1357,7 @@ namespace WelshConsole
                     }
                     if (!p.isEmpty('D'))
                     {
-                        words[actualLength] = p.tell('P').english();
+                        words[actualLength] = p.tell('D').english();
                         actualLength++;
                     }
                     if (!p.isEmpty('S'))
@@ -1529,25 +1597,15 @@ namespace WelshConsole
                 Console.OutputEncoding = System.Text.Encoding.Unicode;//required to be able to read that stupid upside down h
                 Console.InputEncoding = System.Text.Encoding.Unicode;
 
-                bool fullTest = true;
+                WelshToEnglish we = new WelshToEnglish("welshtest.txt");
 
-                WelshToEnglish we = (fullTest ? new WelshToEnglish("welshtest.txt") : new WelshToEnglish());
-
-
-
-
-                if (fullTest)
+                we.runTestFile();
+                WelshToEnglish manualInput = new WelshToEnglish();
+                for (int i = 0; i < 25; i++)
                 {
-                    we.runTestFile();
+                    manualInput.doASentence();
                 }
-                else
-                {
-
-                    for (int i = 0; i < 25; i++)
-                    {
-                        we.doASentence();
-                    }
-                }
+                
             }
         }
     }
