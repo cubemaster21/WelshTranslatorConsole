@@ -879,8 +879,7 @@ namespace WelshConsole
                 //
                 return sc.tellCurrentLocation() < sc.howMany();
             }
-        }//
-        //
+        }
         class WelshEnglishIntermediateCode
         {
             //
@@ -975,7 +974,7 @@ namespace WelshConsole
                 //TODO
 
             }
-        }//
+        }
         class WelshEnglishWordTable
         {
             int currentSize;
@@ -1204,6 +1203,7 @@ namespace WelshConsole
                 Console.WriteLine("No Definition found for: " + word);
                 return new WordEntry(" ", "UNKNOWN", "Z     ");
             }
+            //TODO add find2 function that searches based on english, cuts of extra s's, etc...
             public char tellChange()
             {
                 //I'm not sure why I'm supposed to change the change var back to  ' ' after this, but whatever
@@ -1548,21 +1548,15 @@ namespace WelshConsole
             {
                 int index = 0;
                 int correctCounter = 0;
-                Console.WriteLine("Starting test....");
+                Console.WriteLine("Starting Welsh -> English test....");
                 while (scanner.scanSentence())
                 {
-                    //scanner.show();
                     parser.DoParse();
-                    //code.Show();
-
                     generator.generate();
-                    //generator.show();
                     output.toSentence();
                     if(output.getSentence() == testData[index, 1])
                     {
-                        //correct
                         correctCounter++;
-                       
                     } else
                     {
                         Console.WriteLine("Translate incorrect for line: " + ((index + 1) * 2 - 1));
@@ -1571,21 +1565,767 @@ namespace WelshConsole
                 }
                 Console.WriteLine("Test Completed! " + correctCounter + " / " + lines + " translations correct");
             }
-
-
-
-
             public void doASentence()
             {
-                //use pieces in correct order
                 scanner.scanSentence();
                 scanner.show();
                 parser.DoParse();
                 code.Show();
-                
                 generator.generate();
                 generator.show();
                 output.tellSentence();
+            }
+        }
+        class EnglishToWelsh
+        {
+            Source source;
+            Scanner scanner;
+            WelshEnglishIntermediateCode code;
+            WelshEnglishWordTable table;
+            //WelshParser parser;
+            //EnglishGenerator generator;
+            //EnglishOutput output;
+            EnglishParser parser;
+            WelshGenerator generator;
+            WelshOutput output;
+
+
+            const int PIECENUMBER = 5;
+
+            public EnglishToWelsh()
+            {
+                //create new pieces
+                source = new Source();
+                scanner = new Scanner(source);
+                code = new WelshEnglishIntermediateCode(PIECENUMBER);
+                table = new WelshEnglishWordTable();
+                parser = new EnglishParser(scanner, code, table);
+                generator = new WelshGenerator(code, table);
+                output = new WelshOutput(generator);
+            }
+            public EnglishToWelsh(String filename)
+            {
+                source = new Source(filename);
+                Console.WriteLine("Loaded testfile with " + lines + " Lines");
+                scanner = new Scanner(source);
+                code = new WelshEnglishIntermediateCode(PIECENUMBER);
+                table = new WelshEnglishWordTable();
+                parser = new EnglishParser(scanner, code, table);
+                generator = new WelshGenerator(code, table);
+                output = new WelshOutput(generator);
+            }
+
+            public void runTestFile()
+            {
+                int index = 0;
+                int correctCounter = 0;
+                Console.WriteLine("Starting English -> Welsh test....");
+                while (scanner.scanSentence())
+                {
+                    parser.DoParse();
+                    generator.generate();
+                    output.toSentence();
+                    if (output.getSentence() == testData[index, 0])
+                    {
+                        correctCounter++;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Translate incorrect for line: " + ((index + 1) * 2));
+                    }
+                    index++;
+                }
+                Console.WriteLine("Test Completed! " + correctCounter + " / " + lines + " translations correct");
+            }
+            public void doASentence()
+            {
+                scanner.scanSentence();
+                scanner.show();
+                parser.DoParse();
+                code.Show();
+                generator.generate();
+                generator.show();
+                output.tellSentence();
+            }
+        }
+        class WelshOutput
+        {
+            WelshGenerator generator;
+            String outSentence;
+            String nextWord;
+
+            public WelshOutput(WelshGenerator gen)
+            {
+                generator = gen;
+                outSentence = "";
+            }
+            public void toSentence()
+            {
+                outSentence = generator.tell(0);
+                for (int i = 1; i < generator.tellSize(); i++)
+                {
+                    outSentence += " " + generator.tell(i);
+                }
+            }
+            public void tellSentence()
+            {
+                toSentence();
+                Console.WriteLine("\nTranslation: ");
+                Console.WriteLine(outSentence + "\n");
+
+            }
+            public String getSentence()
+            {
+
+                return outSentence;
+            }
+        }
+        class WelshGenerator
+        {
+            const int MAXWORDS = 20;
+            WelshEnglishIntermediateCode ic;
+            WelshEnglishWordTable wt;
+            String[] words;
+            int outLocation;
+            int actualLength;
+
+            public WelshGenerator(WelshEnglishIntermediateCode aic, WelshEnglishWordTable awt)
+            {
+                this.ic = aic;
+                this.wt = awt;
+                words = new String[MAXWORDS];
+                actualLength = 0;
+            }
+            public void generate()
+            {
+                actualLength = 0;
+                getExclamation();
+                getSubject();
+                getVerbPart();
+                getPresentParticiple();
+
+
+                getPredicate();
+                getObject();
+
+                //fix the am liking scenario
+
+
+
+
+                adjustEnds();
+            }
+            void getPresentParticiple()
+            {
+                bool like = !ic.PresParticiple.empty() && ic.PresParticiple.tell('V').english() == "like";
+                if (like)
+                {
+                    if (!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
+                    {
+                        String word = ic.PresParticiple.tell('V').english();
+                        if (!ic.VerbPart.isPlural())
+                        {
+                            if (ic.PresParticiple.tell('V').isRegular())
+                            {
+                                word += "s";
+                            }
+                        }
+                        words[actualLength++] = word;
+                    }
+                }
+                else if (!ic.PresParticiple.empty())
+                {
+                    if (!ic.PresParticiple.isEmpty('R') && !ic.PresParticiple.isEmpty('V'))
+                    {
+                        String english = ic.PresParticiple.tell('V').english();
+                        if ("aeiou".Contains(english[english.Length - 1]))
+                        {
+                            english = english.Substring(0, english.Length - 1);
+                        }
+                        else if ("aeiou".Contains(english[english.Length - 2])) english += english[english.Length - 1];
+                        english += "ing";
+
+                        if (ic.PresParticiple.tell('V').hasIrregularPresentParticiple()) english = ic.PresParticiple.tell('V').irregularPresentParticiple;
+
+                        words[actualLength++] = english;
+                    }
+                }
+            }
+            void getExclamation()
+            {
+                if (!ic.Vocative.empty())
+                {
+                    foreach (char c in new char[] { 'E', 'P', 'D', 'S', 'M', 'J' })
+                    {
+                        words[actualLength] = ic.Vocative.tell(c).english();
+                        actualLength++;
+                    }
+                    if (!ic.Vocative.isEmpty('N'))
+                    {
+
+                        words[actualLength] = ic.Vocative.tell('N').english() + (ic.Vocative.isPlural() ? "s" : "");
+                        actualLength++;
+                    }
+                }
+            }
+            void getSubject()
+            {
+                getNounPart(ic.Subject);
+            }
+            void getNounPart(WelshEnglishPiece p)
+            {
+                if (!p.empty())
+                {
+
+                    if (!p.isEmpty('V'))
+                    {
+                        words[actualLength++] = "to " + p.tell('V').english();
+                    }
+                    if (!p.isEmpty('R'))
+                    {
+                        words[actualLength] = p.tell('R').english();
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('A') && p.isEmpty('D'))
+                    {
+                        words[actualLength++] = p.tell('A').english();
+                    }
+                    if (p.isDefinite() && p.isEmpty('P') && (!p.hasPiece('D') || p.isEmpty('D')))
+
+                    {
+                        //otherwise use the indefinite article, which doesn't exist in welsh
+                        words[actualLength++] = "the";
+                    }
+                    else
+                    if ((p.isEmpty('S') && p.isEmpty('D') && p.isEmpty('M') && p.isEmpty('P') && !p.isEmpty('N') && p.isEmpty('A')) || (!p.isDefinite() && p.isEmpty('P') && p.isEmpty('A') && p.isEmpty('V') && p.isEmpty('D')))
+                    {
+                        //no possessive, demonstrative, numeral, pronoun, but noun is present
+                        //OR if the piece has been deemed definite because of the Y before it
+                        if (!p.isEmpty('N') && !p.tell('N').noEnglishIndefinite)
+                        {
+                            words[actualLength] = "a";
+                            actualLength++;
+                        }
+                    }
+
+
+
+
+                    if (!p.isEmpty('P'))
+                    {
+                        words[actualLength] = p.tell('P').english();
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('D'))
+                    {
+                        words[actualLength] = p.tell('D').english();
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('S'))
+                    {
+                        if (p.isEmpty('M') && p.isEmpty('J') && p.isEmpty('N') && p.isEmpty('D'))
+                        {
+                            words[actualLength] = "mine";
+                        }
+                        else
+                        {
+                            words[actualLength] = p.tell('S').english();
+                        }
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('M'))
+                    {
+                        words[actualLength] = p.tell('M').english();
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('J'))
+                    {
+                        words[actualLength] = p.tell('J').english();
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('N'))
+                    {
+                        words[actualLength] = p.tell('N').english() + (p.isPlural() ? "s" : "");
+                        actualLength++;
+                    }
+                    if (!p.isEmpty('C'))
+                    {
+                        words[actualLength++] = p.tell('C').english();
+                    }
+
+                    //Console.WriteLine("Extra Prepositionals: " + p.getExtraPrepositionalsCount());
+                    for (int i = 0; i < p.getExtraPrepositionalsCount(); i++)
+                    {
+                        getNounPart(p.getExtraPrepositional(i));
+                    }
+                }
+            }
+            void getVerbPart()
+            {
+                bool liking = !ic.PresParticiple.empty() && ic.PresParticiple.tell('V').english() == "like";
+                if (!ic.VerbPart.empty() && !liking)
+                {
+                    String word = ic.VerbPart.tell('V').english();
+                    //fix the ending of the word
+                    if (!ic.VerbPart.isPlural())
+                    {
+                        if (ic.VerbPart.tell('V').isRegular())
+                        {
+                            word += "s";
+                        }
+                    }
+                    else
+                    {
+                        //is plural
+                        if (word == "is")
+                        {
+                            //stupidly irregular case
+                            word = "are";
+                        }
+                    }
+
+
+                    words[actualLength] = word;
+                    actualLength++;
+                }
+            }
+            void getPredicate()
+            {
+
+                getNounPart(ic.Predicate);
+            }
+            void getObject()
+            {
+                if (!ic.Object.isEmpty('V'))
+                {
+                    words[actualLength++] = "to " + ic.Object.tell('V');
+                }
+                getNounPart(ic.Object);
+                //FIX THIS
+            }
+            void adjustEnds()
+            {
+                if (ic.IsUpperCase())
+                {
+                    StringBuilder temp = new StringBuilder(words[0]);
+                    temp[0] = char.ToUpper(temp[0]);
+                    words[0] = temp.ToString();
+                }
+                if (ic.TellEndPunctuation() != ' ')
+                {
+                    words[actualLength - 1] = words[actualLength - 1] + ic.TellEndPunctuation();
+                }
+            }
+            public String tell(int i)
+            {
+                return words[i];
+            }
+            public int tellSize()
+            {
+                return actualLength;
+            }
+            public String tellFirst()
+            {
+                outLocation = 1;
+                return words[0];
+            }
+            public String tellNext()
+            {
+                if (outLocation < actualLength)
+                    return words[outLocation++];
+                return "";
+            }
+            public void show()
+            {
+                //pretty print
+            }
+        }
+        class EnglishParser
+        {
+            // 
+            // 
+            Scanner sc;
+            WelshEnglishIntermediateCode ic;
+            WelshEnglishWordTable wt;
+            bool Be;
+            public EnglishParser(Scanner aSc, WelshEnglishIntermediateCode aIc, WelshEnglishWordTable aWt)
+            {
+                // 
+                sc = aSc;
+                ic = aIc;
+                wt = aWt;
+
+            }
+            public void DoParse()
+            {
+                //
+                //
+                //
+                Be = false;
+                ic.Clean();
+                AdjustEnds();
+
+                //try the article from the front?
+                bool articleStart = false;
+                //String word = sc.TellWord();
+                //if (word == "y" || word == "yr")
+                //{
+                //    sc.increaseCurrentLocation();
+                //    articleStart = true;
+                //    //keep in mind that this isn't always meaningless
+                //}
+
+                TryExclamation();
+                for (int i = 1; i < 4 && ic.Subject.empty(); i++)
+                {
+                    TrySubject(i);
+                }
+                TryVerbPart();
+                
+                
+                
+
+                TryPresentParticiple();
+
+                if (Be || BeIsh()) // replaced beish
+                {
+                    TryPredicate();
+                }
+                else
+                    TryObject();
+
+                if (articleStart && ic.VerbPart.empty())
+                {
+                    ic.Subject.setDefinite(true);
+                }
+            }
+
+            void TryPresentParticiple()
+            {
+                int backupPosition = sc.tellCurrentLocation();
+
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    char pos = wt.find(sc.TellWord()).POS();
+                    if ("V".Contains(pos) && ic.PresParticiple.isEmpty(pos)) // if its a preposition or berb
+                    {
+                        ic.PresParticiple.fill(c);
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+                //if there isn't a verb in the present participle, we need to undo what we've done.
+                if (ic.PresParticiple.isEmpty('V'))
+                {
+                    ic.PresParticiple.clean();
+                    sc.setCurrentLocation(backupPosition);
+                }
+            }
+
+            void TryExclamation()
+            {
+                //
+                if (ic.IsExclamation())
+                {
+                    bool done = false;
+                    while (More() && !done)
+                    {
+                        WordEntry c = wt.find(sc.TellWord());
+                        while (c.isBad() && !done)
+                        {
+                            if (More())
+                            {
+                                sc.increaseCurrentLocation();
+                                if (More())
+                                    c = wt.find(sc.TellWord());
+                                else
+                                    done = true;
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        if (Vocish())
+                        {
+                            ic.Vocative.fill(c);
+                            if (wt.tellChange() == 'P')
+                            {
+                                ic.Vocative.makePlural();
+                            }
+                            sc.increaseCurrentLocation();
+                        }
+                        else
+                        {
+                            done = true;
+                        }
+                    }
+                }
+            }
+            void TryNounPart(WelshEnglishPiece p)
+            {
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    if (Nounish(c))
+                    {
+                        p.fill(c);
+                        if (wt.tellChange() == 'P')
+                            p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+            }
+            void TrySubject(int attemptNumber)
+            {
+
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord(), attemptNumber);
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord(), attemptNumber);
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+
+                    if (Nounish(c))
+                    {
+                        ic.Subject.fill(c);
+                        if (wt.tellChange() == 'P')
+                            ic.Subject.makePlural();
+                        //if the subject is plural, the verb needs to change form
+                        if (c.isPlural())
+                        {
+                            ic.VerbPart.makePlural();
+                        }
+                        if (sc.tellPrevious().EndsWith("'r"))
+                        {
+                            ic.Subject.setDefinite(true);
+                        }
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+            }
+            void TryVerbPart()
+            {
+                //
+                while (More() && Verbish())
+                {
+
+                    if (BeIsh())
+                        Be = true;
+                    //if (wt.find(sc.TellWord()).person() == '1')
+                    //{
+                    //   WordEntry t = new WordEntry(" ", "I", "P     ");
+                    //  ic.Subject.fill(t);
+                    //}
+                    //if first person, fill that word entry into the subject
+                    ic.VerbPart.fill(wt.find(sc.TellWord()));
+                    sc.increaseCurrentLocation();
+                }
+
+            }
+            void TryObject()
+            {
+                WelshEnglishPiece p = ic.Object;
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+                    if ("NAPDSMJFV".Contains(c.POS()))
+                    {
+                        p.fill(c);
+                        if (wt.tellChange() == 'P')
+                            p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+            }
+            void TryPredicate()
+            {
+                //
+                WelshEnglishPiece p = ic.Predicate;
+                bool done = false;
+                while (More() && !done)
+                {
+                    WordEntry c = wt.find(sc.TellWord());
+                    while (c.isBad() && !done)
+                    {
+                        if (More())
+                        {
+                            sc.increaseCurrentLocation();
+                            if (More())
+                                c = wt.find(sc.TellWord());
+                            else
+                                done = true;
+                        }
+                        else
+                            done = true;
+                    }
+
+                    if (ic.Predicate.getTypesString().Contains(c.POS()))
+                    {
+                        WelshEnglishPiece placedIn = p.fill(c);
+                        if (sc.TellWord().EndsWith("'r"))
+                            placedIn.setDefinite(true);
+
+                        if (wt.tellChange() == 'P')
+                            p.makePlural();
+                        //if the subject is plural, the verb needs to change form
+
+                        sc.increaseCurrentLocation();
+                    }
+                    else
+                        done = true;
+                }
+            }
+            bool BeIsh()
+            {
+                //
+                //
+                //
+                if (More())
+                {
+                    char c = wt.find(sc.TellWord()).POS();
+                    char d = 'N';
+                    return (c == 'V' && d == 'N');
+                }
+                return false;
+            }
+            bool Verbish()
+            {
+                //
+                return More() && wt.find(sc.TellWord()).POS() == 'V';
+            }
+            bool Nounish(WordEntry w)
+            {
+                //
+                //
+                if (More())
+                {
+                    char c = w.POS();
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F';
+                }
+                return false;
+            }
+            bool Predicatish()
+            {
+                //
+                //
+                if (More())
+                {
+                    char c = wt.find(sc.TellWord()).POS();
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'F' || c == 'R' || c == 'C'; // added preposition
+                }
+                return false;
+            }
+            bool Vocish()
+            {
+                //
+                //
+                if (More())
+                {
+                    char c = wt.find(sc.TellWord()).POS();
+                    return c == 'N' || c == 'A' || c == 'P' || c == 'D' || c == 'S' || c == 'M' || c == 'J' || c == 'E';
+                }
+                return false;
+            }
+            bool First()
+            {
+                //
+                //
+                return wt.find(sc.TellWord()).person() == '1';
+            }
+            void AdjustEnds()
+            {
+                //
+                //
+                //
+                if (char.IsUpper(sc.tellFirst()[0]))
+                {
+                    ic.SetUpperCase(true);
+                    StringBuilder temp = new StringBuilder(sc.tellFirst());
+                    temp[0] = char.ToLower(temp[0]);
+                    sc.setFirst(temp.ToString());
+                }
+                if (sc.tellLast().EndsWith("."))
+                {
+                    sc.removeEndPunctuation();
+                    ic.SetEndPunctuation('.');
+                }
+                else if (sc.tellLast().EndsWith("!"))
+                {
+                    sc.removeEndPunctuation();
+                    ic.SetEndPunctuation('!');
+                    ic.SetExclamation(true);
+                }
+            }
+            bool More()
+            {
+                //
+                return sc.tellCurrentLocation() < sc.howMany();
             }
         }
         class Program
